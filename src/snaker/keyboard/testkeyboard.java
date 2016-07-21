@@ -2,10 +2,11 @@ package snaker.keyboard;
 
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
-import java.awt.image.ImageObserver;
 import java.io.File;
 import java.io.IOException;
 
@@ -13,7 +14,6 @@ import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
@@ -36,9 +36,38 @@ class snaker_keylistener extends KeyAdapter{
 		//我们在这里需要做点什么事情
 		//上38 下40 左37 右39
 		//dosomething()
+		switch(keycode) {
+		case KeyEvent.VK_UP:
+			break;
+		case KeyEvent.VK_DOWN:
+			break;
+		case KeyEvent.VK_LEFT:
+			break;
+		case KeyEvent.VK_RIGHT:
+			break;
+		default:
+			break;
+		}
 	}
 }
 
+class startButton_ActionListener implements ActionListener {
+	public JFrame f;
+	public startButton_ActionListener(JFrame f) {
+		this.f=f;
+	}
+	public void actionPerformed(ActionEvent e) {
+		//code that reacts to the action...
+		f.requestFocus();
+		//开始游戏
+	}
+}
+
+class exitButton_ActionListener implements ActionListener {
+	public void actionPerformed(ActionEvent e) {
+		System.exit(0);
+	}
+}
 class GameZonePanel extends JPanel {
 	private BufferedImage image;
 	
@@ -54,6 +83,7 @@ class GameZonePanel extends JPanel {
 	protected void paintComponent(Graphics g) {
 		super.paintComponent(g);
 		g.drawImage(image,5,5,25,25, null);
+		g.drawImage(image,470,470,25,25, null);
 	}
 }
 class snakerframe {
@@ -64,14 +94,15 @@ class snakerframe {
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.addKeyListener(new snaker_keylistener());
 		frame.setLayout(null);
-		frame.setSize(800,600);
+		frame.setSize(630,600);
 		frame.setResizable(false);
 		frame.setLocationRelativeTo(null);
 		frame.setVisible(true);
-		
+	
 		JPanel globalPanel = new JPanel();
-		globalPanel.setSize(700,500);
+		globalPanel.setSize(630,500);
 		globalPanel.setLayout(null);
+		//globalPanel.addKeyListener(new snaker_keylistener());
 		
 		GameZonePanel gPanel = new GameZonePanel();
 		gPanel.setSize(500,500);
@@ -82,10 +113,20 @@ class snakerframe {
 		startButton.setText("Start");
 		startButton.setSize(100, 100);
 		startButton.setLocation(510, 0);
+		startButton.addActionListener(new startButton_ActionListener(frame));
+		
+		JButton exitButton = new JButton();
+		exitButton.setText("Exit");
+		exitButton.setSize(100, 100);
+		exitButton.setLocation(510, 110);
+		exitButton.addActionListener(new exitButton_ActionListener());
 		
 		globalPanel.add(gPanel);
 		globalPanel.add(startButton);
+		globalPanel.add(exitButton);
 		frame.getContentPane().add(globalPanel);
+		frame.requestFocus();
+		
 	}
 	
 	public void run() {
