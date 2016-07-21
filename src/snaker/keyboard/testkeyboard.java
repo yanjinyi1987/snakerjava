@@ -53,13 +53,39 @@ class snaker_keylistener extends KeyAdapter{
 
 class startButton_ActionListener implements ActionListener {
 	public JFrame f;
-	public startButton_ActionListener(JFrame f) {
+	public JButton pause;
+	public startButton_ActionListener(JFrame f,JButton pause) {
 		this.f=f;
+		this.pause=pause;
 	}
 	public void actionPerformed(ActionEvent e) {
 		//code that reacts to the action...
 		f.requestFocus();
-		//开始游戏
+		pause.setEnabled(true);
+		//重头开始游戏
+	}
+}
+
+class pauseButton_ActionListener implements ActionListener {
+	private static boolean flag=true;
+	public JButton b;
+	public JFrame f;
+	public pauseButton_ActionListener(JFrame f,JButton b) {
+		this.b=b;
+		this.f=f;
+	}
+	public void actionPerformed(ActionEvent e) {
+		//暂停游戏
+		if(flag==true) {
+			//暂停游戏
+			b.setText("Resume");
+		}
+		else {
+			//恢复游戏进度
+			b.setText("Pause");
+			f.requestFocus();
+		}
+		flag=!flag;
 	}
 }
 
@@ -68,6 +94,7 @@ class exitButton_ActionListener implements ActionListener {
 		System.exit(0);
 	}
 }
+
 class GameZonePanel extends JPanel {
 	private BufferedImage image;
 	
@@ -110,21 +137,32 @@ class snakerframe {
 		gPanel.setDoubleBuffered(true);
 		
 		JButton startButton = new JButton();
+		JButton pauseButton = new JButton();
+		JButton exitButton = new JButton();
+		
 		startButton.setText("Start");
 		startButton.setSize(100, 100);
 		startButton.setLocation(510, 0);
-		startButton.addActionListener(new startButton_ActionListener(frame));
+		startButton.addActionListener(new startButton_ActionListener(frame,pauseButton));
+
+		pauseButton.setText("Pause");
+		pauseButton.setSize(100, 100);
+		pauseButton.setLocation(510, 110);
+		pauseButton.addActionListener(new pauseButton_ActionListener(frame,pauseButton));
+		pauseButton.setEnabled(false);
 		
-		JButton exitButton = new JButton();
 		exitButton.setText("Exit");
 		exitButton.setSize(100, 100);
-		exitButton.setLocation(510, 110);
+		exitButton.setLocation(510, 220);
 		exitButton.addActionListener(new exitButton_ActionListener());
 		
 		globalPanel.add(gPanel);
 		globalPanel.add(startButton);
+		globalPanel.add(pauseButton);
 		globalPanel.add(exitButton);
 		frame.getContentPane().add(globalPanel);
+		//如果不加这一行，焦点会在button上，
+		//并且鼠标无法修改焦点到frame之上的。
 		frame.requestFocus();
 		
 	}
