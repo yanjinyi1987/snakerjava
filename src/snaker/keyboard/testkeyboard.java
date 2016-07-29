@@ -26,7 +26,22 @@ class testkeyboard {
 		}
 	}
 }
+class InitialCondition {
+	public static int startx=5;
+	public static int starty=5;
+	public static int borderWidth=500;
+	public static int borderHeight=500;
+	public static int foodWidth=25;
+	public static int foodHeight=25;
+}
 
+class FoodPosition {
+	public FoodPosition() {
+		x=0;y=0;
+	}
+	public int x;
+	public int y;
+}
 
 class snaker_keylistener extends KeyAdapter{ 
 	public void keyPressed(KeyEvent e) {
@@ -52,9 +67,9 @@ class snaker_keylistener extends KeyAdapter{
 }
 
 class startButton_ActionListener implements ActionListener {
-	public JFrame f;
+	public SnakerGame f;
 	public JButton pause;
-	public startButton_ActionListener(JFrame f,JButton pause) {
+	public startButton_ActionListener(SnakerGame f,JButton pause) {
 		this.f=f;
 		this.pause=pause;
 	}
@@ -69,8 +84,8 @@ class startButton_ActionListener implements ActionListener {
 class pauseButton_ActionListener implements ActionListener {
 	private static boolean flag=true;
 	public JButton b;
-	public JFrame f;
-	public pauseButton_ActionListener(JFrame f,JButton b) {
+	public SnakerGame f;
+	public pauseButton_ActionListener(SnakerGame f,JButton b) {
 		this.b=b;
 		this.f=f;
 	}
@@ -96,9 +111,37 @@ class exitButton_ActionListener implements ActionListener {
 }
 
 class GameZonePanel extends JPanel {
-	private BufferedImage image;
+	@Override
+	protected void paintComponent(Graphics g) {
+		super.paintComponent(g);
+		//画网格
+		for(int i=0;i<=InitialCondition.borderWidth/InitialCondition.foodWidth;i++) {
+			g.drawLine(InitialCondition.startx,
+					InitialCondition.starty+i*InitialCondition.foodHeight,
+					InitialCondition.startx+InitialCondition.borderWidth,
+					InitialCondition.starty+i*InitialCondition.foodHeight);
+		}
+		
+		for(int i=0;i<=InitialCondition.borderHeight/InitialCondition.foodHeight;i++) {
+			g.drawLine(InitialCondition.startx+i*InitialCondition.foodHeight,
+					InitialCondition.starty,
+					InitialCondition.startx+i*InitialCondition.foodHeight,
+					InitialCondition.starty+InitialCondition.borderHeight);
+		}
+	}
+}
+
+class SnakerGame extends JPanel {
+	private BufferedImage image_current=
+			new BufferedImage(InitialCondition.borderWidth,
+					InitialCondition.borderHeight,
+					BufferedImage.TYPE_INT_ARGB);
+	private BufferedImage image_background=
+			new BufferedImage(InitialCondition.borderWidth,
+					InitialCondition.borderHeight,
+					BufferedImage.TYPE_INT_ARGB);
 	
-	public GameZonePanel() {
+	public SnakerGame() {
 		try{
 			image=ImageIO.read(new File("img/apple.png"));
 		}catch(IOException ex) {
@@ -106,12 +149,30 @@ class GameZonePanel extends JPanel {
 			System.out.println("No such file!");
 		}
 	}
+
 	@Override
 	protected void paintComponent(Graphics g) {
 		super.paintComponent(g);
-		g.drawImage(image,5,5,25,25, null);
-		g.drawImage(image,470,470,25,25, null);
+		g.drawImage
 	}
+	/*需要一个定时器*/
+	/*先实现单一图片的上下左右移动和自动沿着一个方向移动*/
+	public boolean startgame() {
+		return true;
+	}
+	
+	public boolean pausegame() {
+		return true;
+	}
+	
+	public boolean resumegame() {
+		return true;
+	}
+	
+	public boolean exitgame() {
+		return true;
+	}
+	
 }
 class snakerframe {
 	private static void constructGUI() {
@@ -119,22 +180,35 @@ class snakerframe {
 		JFrame frame = new JFrame();
 		frame.setTitle("Snaker");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.addKeyListener(new snaker_keylistener());
+		//frame.addKeyListener(new snaker_keylistener());
 		frame.setLayout(null);
 		frame.setSize(630,600);
 		frame.setResizable(false);
 		frame.setLocationRelativeTo(null);
-		frame.setVisible(true);
 	
 		JPanel globalPanel = new JPanel();
-		globalPanel.setSize(630,500);
+		globalPanel.setSize(630,
+				InitialCondition.borderHeight+2*InitialCondition.starty);
 		globalPanel.setLayout(null);
 		//globalPanel.addKeyListener(new snaker_keylistener());
 		
 		GameZonePanel gPanel = new GameZonePanel();
-		gPanel.setSize(500,500);
-		gPanel.setBorder(BorderFactory.createMatteBorder(5,5,5,5,Color.green));
-		gPanel.setDoubleBuffered(true);
+		gPanel.setSize(InitialCondition.borderWidth+2*InitialCondition.startx
+				,InitialCondition.borderHeight+2*InitialCondition.starty);
+		gPanel.setBorder(BorderFactory.createMatteBorder(InitialCondition.startx
+				,InitialCondition.startx
+				,3//InitialCondition.startx
+				,3//InitialCondition.startx
+				,Color.green));
+		gPanel.setOpaque(false); //将背景网格设置为透明
+		
+		SnakerGame gGamePanel = new SnakerGame();
+		gGamePanel.setLocation(InitialCondition.startx,
+				InitialCondition.starty);	
+		gGamePanel.setSize(InitialCondition.borderWidth,
+				InitialCondition.borderHeight);
+		gGamePanel.setDoubleBuffered(true);
+		gGamePanel.addKeyListener(new snaker_keylistener());
 		
 		JButton startButton = new JButton();
 		JButton pauseButton = new JButton();
@@ -142,29 +216,32 @@ class snakerframe {
 		
 		startButton.setText("Start");
 		startButton.setSize(100, 100);
-		startButton.setLocation(510, 0);
-		startButton.addActionListener(new startButton_ActionListener(frame,pauseButton));
+		startButton.setLocation(InitialCondition.borderWidth+InitialCondition.startx+10, 0);
+		startButton.addActionListener(new startButton_ActionListener(gGamePanel,pauseButton));
 
 		pauseButton.setText("Pause");
 		pauseButton.setSize(100, 100);
-		pauseButton.setLocation(510, 110);
-		pauseButton.addActionListener(new pauseButton_ActionListener(frame,pauseButton));
+		pauseButton.setLocation(InitialCondition.borderWidth+InitialCondition.startx+10, 110);
+		pauseButton.addActionListener(new pauseButton_ActionListener(gGamePanel,pauseButton));
 		pauseButton.setEnabled(false);
 		
 		exitButton.setText("Exit");
 		exitButton.setSize(100, 100);
-		exitButton.setLocation(510, 220);
+		exitButton.setLocation(InitialCondition.borderWidth+InitialCondition.startx+10, 220);
 		exitButton.addActionListener(new exitButton_ActionListener());
 		
 		globalPanel.add(gPanel);
+		globalPanel.add(gGamePanel);
 		globalPanel.add(startButton);
 		globalPanel.add(pauseButton);
 		globalPanel.add(exitButton);
 		frame.getContentPane().add(globalPanel);
 		//如果不加这一行，焦点会在button上，
 		//并且鼠标无法修改焦点到frame之上的。
-		frame.requestFocus();
-		
+		frame.setVisible(true);
+		gGamePanel.requestFocus();
+		//开始游戏
+		gGamePanel.startgame();
 	}
 	
 	public void run() {
