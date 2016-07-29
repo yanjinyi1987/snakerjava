@@ -2,6 +2,8 @@ package snaker.keyboard;
 
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
@@ -9,6 +11,8 @@ import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Random;
+import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -16,6 +20,7 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 
 class testkeyboard {
 	public static void main(String[] argv) {
@@ -35,14 +40,6 @@ class InitialCondition {
 	public static int foodHeight=25;
 }
 
-class FoodPosition {
-	public FoodPosition() {
-		x=0;y=0;
-	}
-	public int x;
-	public int y;
-}
-
 class snaker_keylistener extends KeyAdapter{ 
 	public void keyPressed(KeyEvent e) {
 		char charA=e.getKeyChar();
@@ -53,12 +50,16 @@ class snaker_keylistener extends KeyAdapter{
 		//dosomething()
 		switch(keycode) {
 		case KeyEvent.VK_UP:
+			SnakerGame.moveUp();
 			break;
 		case KeyEvent.VK_DOWN:
+			SnakerGame.moveDown();
 			break;
 		case KeyEvent.VK_LEFT:
+			SnakerGame.moveLeft();
 			break;
 		case KeyEvent.VK_RIGHT:
+			SnakerGame.moveRight();
 			break;
 		default:
 			break;
@@ -76,6 +77,7 @@ class startButton_ActionListener implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		//code that reacts to the action...
 		f.requestFocus();
+		f.startgame();
 		pause.setEnabled(true);
 		//重头开始游戏
 	}
@@ -94,18 +96,28 @@ class pauseButton_ActionListener implements ActionListener {
 		if(flag==true) {
 			//暂停游戏
 			b.setText("Resume");
+			f.pausegame();
 		}
 		else {
 			//恢复游戏进度
 			b.setText("Pause");
 			f.requestFocus();
+			f.resumegame();
+			
 		}
 		flag=!flag;
 	}
 }
 
 class exitButton_ActionListener implements ActionListener {
+	public SnakerGame f;
+	public JButton pause;
+	public exitButton_ActionListener(SnakerGame f,JButton pause) {
+		this.f=f;
+		this.pause=pause;
+	}
 	public void actionPerformed(ActionEvent e) {
+		f.exitgame();
 		System.exit(0);
 	}
 }
@@ -131,49 +143,7 @@ class GameZonePanel extends JPanel {
 	}
 }
 
-class SnakerGame extends JPanel {
-	private BufferedImage image_current=
-			new BufferedImage(InitialCondition.borderWidth,
-					InitialCondition.borderHeight,
-					BufferedImage.TYPE_INT_ARGB);
-	private BufferedImage image_background=
-			new BufferedImage(InitialCondition.borderWidth,
-					InitialCondition.borderHeight,
-					BufferedImage.TYPE_INT_ARGB);
-	
-	public SnakerGame() {
-		try{
-			image=ImageIO.read(new File("img/apple.png"));
-		}catch(IOException ex) {
-			//handle exception
-			System.out.println("No such file!");
-		}
-	}
 
-	@Override
-	protected void paintComponent(Graphics g) {
-		super.paintComponent(g);
-		g.drawImage
-	}
-	/*需要一个定时器*/
-	/*先实现单一图片的上下左右移动和自动沿着一个方向移动*/
-	public boolean startgame() {
-		return true;
-	}
-	
-	public boolean pausegame() {
-		return true;
-	}
-	
-	public boolean resumegame() {
-		return true;
-	}
-	
-	public boolean exitgame() {
-		return true;
-	}
-	
-}
 class snakerframe {
 	private static void constructGUI() {
 		JFrame.setDefaultLookAndFeelDecorated(true);
@@ -209,6 +179,7 @@ class snakerframe {
 				InitialCondition.borderHeight);
 		gGamePanel.setDoubleBuffered(true);
 		gGamePanel.addKeyListener(new snaker_keylistener());
+		gGamePanel.setOpaque(false);//将背景设置为透明,避免覆盖网格
 		
 		JButton startButton = new JButton();
 		JButton pauseButton = new JButton();
@@ -228,7 +199,7 @@ class snakerframe {
 		exitButton.setText("Exit");
 		exitButton.setSize(100, 100);
 		exitButton.setLocation(InitialCondition.borderWidth+InitialCondition.startx+10, 220);
-		exitButton.addActionListener(new exitButton_ActionListener());
+		exitButton.addActionListener(new exitButton_ActionListener(gGamePanel,exitButton));
 		
 		globalPanel.add(gPanel);
 		globalPanel.add(gGamePanel);
@@ -240,8 +211,7 @@ class snakerframe {
 		//并且鼠标无法修改焦点到frame之上的。
 		frame.setVisible(true);
 		gGamePanel.requestFocus();
-		//开始游戏
-		gGamePanel.startgame();
+		//gGamePanel.startgame();
 	}
 	
 	public void run() {
