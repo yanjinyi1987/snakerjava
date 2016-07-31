@@ -38,6 +38,9 @@ class InitialCondition {
 	public static int borderHeight=500;
 	public static int foodWidth=25;
 	public static int foodHeight=25;
+	public static int count_horizontal=borderWidth/foodWidth;
+	public static int count_vertical=borderHeight/foodHeight;
+	public static int timer_inter_sec=100; //100ms
 }
 
 class snaker_keylistener extends KeyAdapter{ 

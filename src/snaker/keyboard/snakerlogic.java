@@ -14,48 +14,139 @@ import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
+enum DIRECTION {
+	Up,Down,Left,Right
+};
+
+//双向链表
+class SnakeBody{
+	Point section;
+	SnakeBody next;
+	SnakeBody before;
+}
+
+
 /*用于描述蛇本身*/
 class Snake {
-	private static Point[] snake;
-	private static int snakeLength=0;
+	/*蛇分为蛇头和身体*/
+	private static int snakeLength=1; //蛇有一个头
+	private SnakeBody snaketail,snakehead;
+	private DIRECTION direction_current=DIRECTION.Right;
 	private static Point head_position_current;
 	public Snake(int hlength,int vlength) {
-		snake = new Point[hlength*vlength];
+		/*
+		 * 现在我们改用链表
+		snakebody = new Point[hlength*vlength];
+		snakebody[0].setLocation(0, 0); //起始位置为(0,0)
+		*/
+		snakehead = new SnakeBody(); 
+		snakehead.section.setLocation(0, 0); //起始位置为(0,0)
+		snakehead.next=null;
+		snakehead.before=null;
+		snaketail=snakehead; //初始 头和尾在一起
+		
+		direction_current=DIRECTION.Right; //那么必须向右走
 	}
 	
+	/*蛇头位于最后的位置*/
 	public Point get_head_position() {
-		return snake[snakeLength-1];
+		return snakehead.section;
 	}
 	
+	public DIRECTION getDirection() {
+		return direction_current;
+	}
+
+	public void setDirection(DIRECTION direction) {
+		direction_current = direction;
+	}
+
 	/*在Timer Action中调用*/
+	/*蛇吃食物的过程*/
+	/*
+	 * 蛇头在不停的闪动，闪动的蛇头覆盖食物，旧的蛇头变成身体，新的蛇头长出
+	 * 我觉得应该有一个消化的过程，即在time n吃入，在time n+1时变成新的身体
+	 */
 	public void eatFood(Point foodPosition) {
 		//这里不能直接赋值的哦！并且执行不能被打断
-		snake[snakeLength].setLocation(foodPosition);
-		snakeLength++;
+		/*这里我们改用双向链表了
+		 * snakebody[snakeLength].setLocation(foodPosition);
+		snakeLength++;*/
 		
-		//判断是不是死了
-		amIDead();
 	}
-	
-	private boolean amIDead() {
-		//检查自己是不是死了
+
+	/*由于蛇头在最后的位置，那么不应该将蛇头与自己比较*/
+	private boolean isBitedBySelf() {
+		Point head = get_head_position();
+		/*我们改用链表了
+		 * for(int i=0;i<snakeLength-1;i++) {
+			if(head.equals(snakebody[i])) {
+				return true;
+			}
+		}*/
+		SnakeBody nextloop=snakehead.next;
+		while(nextloop!=null) {
+			if(head.equals(nextloop.section)) {
+				return true;
+			}
+			nextloop=nextloop.next;
+		}
 		return false;
 	}
 	
-	public void moveToNext(int direction) {
-		;
+	public boolean amIDead() {
+		//检查自己是不是死了
+		Point checkPoint = this.get_head_position();
+		if(checkPoint.x<0 || checkPoint.x>=InitialCondition.count_horizontal
+				|| checkPoint.y<0 || checkPoint.y>=InitialCondition.count_vertical) {
+			//蛇越界了
+			return true;
+		}
+		else if(isBitedBySelf()){ //蛇咬到自己的身体了
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+	
+	/*位置变化的只有头和尾*/
+	public void moveToNext(DIRECTION direction) {
+		this.setDirection(direction);
+		SnakeBody newHead = new SnakeBody();
+		newHead.section.setLocation(snakehead.section);
+		switch (direction) {
+		case Up:
+			newHead.section.y--;
+			break;
+		case Down:
+			newHead.section.y++;
+			break;
+		case Left:
+			newHead.section.x--;
+			break;
+		case Right:
+			newHead.section.x++;
+			break;
+		default:
+			System.out.println("something error");
+			//throw(new Exception());
+			break;
+		}
+		//更改蛇体数据结构
+		newHead.next=snakehead;
+		snakehead.before=newHead;
+		snakehead=newHead;
+		//新的蛇尾，留下旧的蛇尾等待垃圾收集
+		snaketail = snaketail.before;
+		snaketail.next.before=null;
+		snaketail.next=null;
 	}
 }
+
 class SnakerGame extends JPanel {
-	/*
-	 * 0 - 上
-	 * 1 - 下
-	 * 2 - 左
-	 * 3 - 右
-	 */
-	private int count_horizontal,count_vertical;
-	private static int direction_current=0;
-	private static Point head_position_current;
+	//private int count_horizontal,count_vertical;
+	//private static Point head_position_current;
 	private static Point foodPosition;
 	private static Snake snake;
 	private Timer gametimer;
@@ -80,23 +171,25 @@ class SnakerGame extends JPanel {
 		}
 		
 		/*需要一个定时器*/
-		gametimer = new Timer(100,new GameTimerActionListener());
+		gametimer = new Timer(InitialCondition.timer_inter_sec,
+				new GameTimerActionListener());
 		
 		/*水平和垂直方向的随机数发生其*/
 		hrand = new Random();
 		vrand = new Random();
 		/*初始化snake*/
+		/*
 		count_horizontal=InitialCondition.borderWidth/
                 InitialCondition.foodWidth;
 		count_vertical=InitialCondition.borderHeight/
                 InitialCondition.foodHeight;
-		snake = new Snake(count_horizontal,count_vertical);
+                */
+		snake = new Snake(InitialCondition.count_horizontal,
+				InitialCondition.count_vertical);
 		
-		/**/
-		foodPosition = new Point(count_horizontal/2,
-				count_vertical/2);
-		
-		head_position_current = new Point();
+		/*初始化食物*/
+		foodPosition = new Point(InitialCondition.count_horizontal/2,
+				InitialCondition.count_vertical/2);
 	}
 
 	@Override
@@ -143,19 +236,19 @@ class SnakerGame extends JPanel {
 	/*移动程序*/
 	/*在下一个timer到期的时候改变方向*/
 	public static void moveUp() {
-		direction_current=0;
+		snake.setDirection(DIRECTION.Up);
 	}
 	
 	public static void moveDown() {
-		direction_current=1;
+		snake.setDirection(DIRECTION.Down);
 	}
 	
 	public static void moveLeft() {
-		direction_current=2;
+		snake.setDirection(DIRECTION.Left);
 	}
 	
 	public static void moveRight() {
-		direction_current=3;
+		snake.setDirection(DIRECTION.Right);
 	}
 	
 	/*需要被timer调用*/
@@ -164,9 +257,9 @@ class SnakerGame extends JPanel {
 		 * x [0,InitialCondition.borderWidth)
 		 * y [0,InitialCondition.borderHeight)
 		 */
-		foodPosition.setLocation(hrand.nextInt(count_horizontal)*
+		foodPosition.setLocation(hrand.nextInt(InitialCondition.count_horizontal)*
 				InitialCondition.foodWidth
-				, vrand.nextInt(count_vertical)*
+				, vrand.nextInt(InitialCondition.count_vertical)*
 				InitialCondition.foodHeight);
 		
 	}
@@ -184,6 +277,9 @@ class SnakerGame extends JPanel {
 		;
 	}
 	
+	public void gameover() {
+		;
+	}
 	class GameTimerActionListener implements ActionListener {
 		@Override
 		public void actionPerformed(ActionEvent e) {
@@ -196,7 +292,7 @@ class SnakerGame extends JPanel {
 			}
 			else {
 				//没有食物，蛇就移动到下一个位置，哈哈！
-				snake.moveToNext(direction_current);
+				snake.moveToNext(snake.getDirection());
 			}
 			repaint();
 		}
