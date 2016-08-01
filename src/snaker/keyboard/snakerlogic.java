@@ -1,5 +1,6 @@
 package snaker.keyboard;
 
+import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
@@ -23,6 +24,10 @@ class SnakeBody{
 	Point section;
 	SnakeBody next;
 	SnakeBody before;
+	
+	public SnakeBody() {
+		section = new Point();
+	}
 }
 
 
@@ -48,6 +53,9 @@ class Snake {
 		direction_current=DIRECTION.Right; //那么必须向右走
 	}
 	
+	public SnakeBody get_snakeHead() {
+		return snakehead;
+	}
 	/*蛇头位于最后的位置*/
 	public Point get_head_position() {
 		return snakehead.section;
@@ -72,11 +80,15 @@ class Snake {
 		/*这里我们改用双向链表了
 		 * snakebody[snakeLength].setLocation(foodPosition);
 		snakeLength++;*/
-		
+		SnakeBody newHead = new SnakeBody();
+		newHead.next=snakehead;
+		snakehead.before=newHead;
+		newHead.section.setLocation(snakehead.section);
+		snakehead=newHead; //在下一次timer中将蛇头的坐标更新。
 	}
 
 	/*由于蛇头在最后的位置，那么不应该将蛇头与自己比较*/
-	private boolean isBitedBySelf() {
+	private boolean isBitedBySelf(Point headLocation) {
 		Point head = get_head_position();
 		/*我们改用链表了
 		 * for(int i=0;i<snakeLength-1;i++) {
@@ -86,7 +98,7 @@ class Snake {
 		}*/
 		SnakeBody nextloop=snakehead.next;
 		while(nextloop!=null) {
-			if(head.equals(nextloop.section)) {
+			if(headLocation.equals(nextloop.section)) {
 				return true;
 			}
 			nextloop=nextloop.next;
@@ -94,25 +106,57 @@ class Snake {
 		return false;
 	}
 	
-	public boolean amIDead() {
+	public boolean amIDead(Point headLocation) {
 		//检查自己是不是死了
-		Point checkPoint = this.get_head_position();
-		if(checkPoint.x<0 || checkPoint.x>=InitialCondition.count_horizontal
-				|| checkPoint.y<0 || checkPoint.y>=InitialCondition.count_vertical) {
+		if(headLocation.x<0 || headLocation.x>=InitialCondition.count_horizontal
+				|| headLocation.y<0 || headLocation.y>=InitialCondition.count_vertical) {
 			//蛇越界了
+			System.out.println("Hit Wall"+" x is "+headLocation.x+"y is "+headLocation.y);
 			return true;
 		}
-		else if(isBitedBySelf()){ //蛇咬到自己的身体了
+		else if(isBitedBySelf(headLocation)){ //蛇咬到自己的身体了
+			System.out.println("Eat self"+" x is "+headLocation.x+"y is "+headLocation.y);
 			return true;
 		}
 		else {
 			return false;
 		}
 	}
+
+	/*位置变化的只有头和尾*/
+	/*return successGrowth*/
+	public boolean growth(DIRECTION direction) {
+		//this.setDirection(direction);
+		switch (direction) {
+		case Up:
+			snakehead.section.y--;
+			break;
+		case Down:
+			snakehead.section.y++;
+			break;
+		case Left:
+			snakehead.section.x--;
+			break;
+		case Right:
+			snakehead.section.x++;
+			break;
+		default:
+			System.out.println("something error");
+			//throw(new Exception());
+			break;
+		}
+		if(amIDead(snakehead.section)==true) {
+			return false;
+		}
+		else {
+			return true;
+		}
+	}
 	
 	/*位置变化的只有头和尾*/
-	public void moveToNext(DIRECTION direction) {
-		this.setDirection(direction);
+	/*return successMoveToNext*/
+	public boolean moveToNext(DIRECTION direction) {
+		//this.setDirection(direction);
 		SnakeBody newHead = new SnakeBody();
 		newHead.section.setLocation(snakehead.section);
 		switch (direction) {
@@ -133,26 +177,34 @@ class Snake {
 			//throw(new Exception());
 			break;
 		}
-		//更改蛇体数据结构
-		newHead.next=snakehead;
-		snakehead.before=newHead;
-		snakehead=newHead;
-		//新的蛇尾，留下旧的蛇尾等待垃圾收集
-		snaketail = snaketail.before;
-		snaketail.next.before=null;
-		snaketail.next=null;
+		if(amIDead(newHead.section)==true) {
+			return false;
+		}
+		else {
+			//更改蛇体数据结构
+			newHead.next=snakehead;
+			snakehead.before=newHead;
+			snakehead=newHead;
+			//新的蛇尾，留下旧的蛇尾等待垃圾收集
+			snaketail = snaketail.before;
+			snaketail.next.before=null;
+			snaketail.next=null;
+			return true;
+		}
 	}
 }
 
 class SnakerGame extends JPanel {
 	//private int count_horizontal,count_vertical;
 	//private static Point head_position_current;
+	private int score;
 	private static Point foodPosition;
 	private static Snake snake;
 	private Timer gametimer;
+	private boolean ateFoodFlag;
 	private Random hrand,vrand;
-	private BufferedImage foodImage;
-	private Graphics2D g2d_current,g2d_background;
+	private BufferedImage foodImage,snakeBodyImage;
+	private static Graphics2D g2d_current,g2d_background;
 	private BufferedImage image_current=
 			new BufferedImage(InitialCondition.borderWidth,
 					InitialCondition.borderHeight,
@@ -169,7 +221,14 @@ class SnakerGame extends JPanel {
 			//handle exception
 			System.out.println("No such file!");
 		}
-		
+
+		try{
+			snakeBodyImage=ImageIO.read(new File("img/brick.png"));
+		}catch(IOException ex) {
+			//handle exception
+			System.out.println("No such file!");
+		}
+		initialGame();
 		/*需要一个定时器*/
 		gametimer = new Timer(InitialCondition.timer_inter_sec,
 				new GameTimerActionListener());
@@ -184,14 +243,22 @@ class SnakerGame extends JPanel {
 		count_vertical=InitialCondition.borderHeight/
                 InitialCondition.foodHeight;
                 */
-		snake = new Snake(InitialCondition.count_horizontal,
-				InitialCondition.count_vertical);
-		
+	}
+
+	public void initialGame() {
+		/*得分*/
+		score=0;
+		snakerframe.scoreLabel.setText("0");
+		/*有食物吃*/
+		ateFoodFlag=false; //类变量初始化的方式？
 		/*初始化食物*/
 		foodPosition = new Point(InitialCondition.count_horizontal/2,
 				InitialCondition.count_vertical/2);
+		
+		snake = new Snake(InitialCondition.count_horizontal,
+				InitialCondition.count_vertical);
 	}
-
+	
 	@Override
 	protected void paintComponent(Graphics g) {
 		super.paintComponent(g);
@@ -201,9 +268,16 @@ class SnakerGame extends JPanel {
 	/*先实现单一图片的上下左右移动和自动沿着一个方向移动*/
 	public boolean startgame() {
 		System.out.println("Start game!");
+		
 		g2d_current=image_current.createGraphics();
 		g2d_background=image_background.createGraphics();
 		
+		//初始化
+		initialGame();
+		g2d_current.setBackground(Color.WHITE);
+		g2d_current.fillRect(0, 0
+				, InitialCondition.borderWidth
+				, InitialCondition.borderHeight);
 		//画出初始的食物
 		g2d_current.drawImage(foodImage, foodPosition.x*InitialCondition.foodWidth, 
 				foodPosition.y*InitialCondition.foodHeight, 
@@ -211,7 +285,12 @@ class SnakerGame extends JPanel {
 				InitialCondition.foodHeight, null);
 		
 		//画出初始的Snake
+		g2d_current.drawImage(snakeBodyImage, snake.get_head_position().x*InitialCondition.foodWidth, 
+				snake.get_head_position().y*InitialCondition.foodHeight, 
+				InitialCondition.foodWidth, 
+				InitialCondition.foodHeight, null);	
 		
+		repaint();
 		//开启计时器
 		gametimer.start();
 		return true;
@@ -252,49 +331,107 @@ class SnakerGame extends JPanel {
 	}
 	
 	/*需要被timer调用*/
+	private boolean isFoodinSnake(Point foodPosition) {
+		SnakeBody nextloop=snake.get_snakeHead();
+		while(nextloop!=null) {
+			if(foodPosition.equals(nextloop.section)) {
+				return true;
+			}
+			nextloop=nextloop.next;
+		}
+		return false;
+	}
 	public void generateFood() {
 		/*
 		 * x [0,InitialCondition.borderWidth)
 		 * y [0,InitialCondition.borderHeight)
+		 * 新产生的食物不能位于蛇的身体里面额
 		 */
-		foodPosition.setLocation(hrand.nextInt(InitialCondition.count_horizontal)*
-				InitialCondition.foodWidth
-				, vrand.nextInt(InitialCondition.count_vertical)*
-				InitialCondition.foodHeight);
+		do {
+			int x=hrand.nextInt(InitialCondition.count_horizontal);
+			int y=vrand.nextInt(InitialCondition.count_vertical);
+			foodPosition.setLocation(x,y);
+		}while(isFoodinSnake(foodPosition));
 		
 	}
 	
 	/*just for test*/
-	public void showFood() {
+	public void drawFood() {
 		g2d_current.drawImage(foodImage, 
-				foodPosition.x, 
-				foodPosition.y, 
+				foodPosition.x*InitialCondition.foodWidth, 
+				foodPosition.y*InitialCondition.foodHeight, 
 				InitialCondition.foodWidth, 
 				InitialCondition.foodHeight, null);
 	}
 	
-	public void eatFood() {
-		;
+	public void drawSnake() {
+		SnakeBody snake = this.snake.get_snakeHead();
+		while(snake!=null) {
+			g2d_current.drawImage(snakeBodyImage
+					, snake.section.x*InitialCondition.foodWidth
+					, snake.section.y*InitialCondition.foodHeight
+					, InitialCondition.foodWidth
+					, InitialCondition.foodHeight, null);
+			
+			snake=snake.next;
+		}
+	}
+	
+	public void clearImageBuffer() {
+		g2d_current.setBackground(Color.WHITE); //setcolor 都无效的哦
+		g2d_current.clearRect(0, 0
+				, InitialCondition.borderWidth
+				, InitialCondition.borderHeight);
 	}
 	
 	public void gameover() {
-		;
+		gametimer.stop();
+		snakerframe.pauseButton.setEnabled(false);
 	}
 	class GameTimerActionListener implements ActionListener {
 		@Override
 		public void actionPerformed(ActionEvent e) {
 			// 执行定时器动作
+			boolean noNeedMoveToNext=false;
+			boolean successMoveToNext=false;
+			boolean successGrowth=false;
+			clearImageBuffer(); //但是没有必要完全的清除额
+			if(ateFoodFlag==true) {
+				successGrowth=snake.growth(snake.getDirection());
+				/*
+				if(successGrowth==true) {
+					g2d_current.drawImage(snakeBodyImage
+							, snake.get_head_position().x*InitialCondition.foodWidth
+							, snake.get_head_position().y*InitialCondition.foodHeight
+							, InitialCondition.foodWidth
+							, InitialCondition.foodHeight, null);
+				}*/
+				ateFoodFlag=false;
+				noNeedMoveToNext=true;
+			}
 			if(snake.get_head_position().equals(foodPosition)) {
-				//吃到食物，在当前方向上变长了。
+				//吃到食物，待消化。
+				score++;
+				snakerframe.scoreLabel.setText(Integer.toString(score));
 				snake.eatFood(foodPosition);
+				ateFoodFlag=true;
 				generateFood();
-				showFood();
 			}
 			else {
-				//没有食物，蛇就移动到下一个位置，哈哈！
-				snake.moveToNext(snake.getDirection());
+				//没有食物，也不是在消化，蛇就移动到下一个位置，哈哈！
+				if(noNeedMoveToNext==false) {
+					successMoveToNext=snake.moveToNext(snake.getDirection());
+				}
 			}
-			repaint();
+			if(ateFoodFlag ==false && successMoveToNext==false && successGrowth==false) {
+				snakerframe.scoreLabel.setText("GG");
+				gameover();
+			}
+			else {
+				drawFood();
+				drawSnake();
+				repaint();
+			}
 		}
 		
 	}

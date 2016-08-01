@@ -1,6 +1,7 @@
 package snaker.keyboard;
 
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
@@ -18,7 +19,9 @@ import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
@@ -40,14 +43,14 @@ class InitialCondition {
 	public static int foodHeight=25;
 	public static int count_horizontal=borderWidth/foodWidth;
 	public static int count_vertical=borderHeight/foodHeight;
-	public static int timer_inter_sec=100; //100ms
+	public static int timer_inter_sec=200; //500ms
 }
 
 class snaker_keylistener extends KeyAdapter{ 
 	public void keyPressed(KeyEvent e) {
 		char charA=e.getKeyChar();
 		int keycode=e.getKeyCode();
-		System.out.println(charA+" code is "+String.valueOf(keycode));
+		//System.out.println(charA+" code is "+String.valueOf(keycode));
 		//我们在这里需要做点什么事情
 		//上38 下40 左37 右39
 		//dosomething()
@@ -148,6 +151,12 @@ class GameZonePanel extends JPanel {
 
 
 class snakerframe {
+	public static JLabel scoreLabel; 
+	public static JButton pauseButton;
+	public snakerframe() {
+		scoreLabel = new JLabel();
+		pauseButton = new JButton();
+	}
 	private static void constructGUI() {
 		JFrame.setDefaultLookAndFeelDecorated(true);
 		JFrame frame = new JFrame();
@@ -185,8 +194,9 @@ class snakerframe {
 		gGamePanel.setOpaque(false);//将背景设置为透明,避免覆盖网格
 		
 		JButton startButton = new JButton();
-		JButton pauseButton = new JButton();
+		//JButton pauseButton = new JButton();
 		JButton exitButton = new JButton();
+		
 		
 		startButton.setText("Start");
 		startButton.setSize(100, 100);
@@ -204,11 +214,26 @@ class snakerframe {
 		exitButton.setLocation(InitialCondition.borderWidth+InitialCondition.startx+10, 220);
 		exitButton.addActionListener(new exitButton_ActionListener(gGamePanel,exitButton));
 		
+		/*但是如何改变分数这是个问题*/
+		scoreLabel.setText("0");
+		Font font = new Font("Times New Roman",Font.BOLD,48);
+		scoreLabel.setFont(font);
+		scoreLabel.setHorizontalAlignment(SwingConstants.CENTER);
+		scoreLabel.setVerticalAlignment(SwingConstants.CENTER);
+		scoreLabel.setForeground(Color.WHITE);
+		scoreLabel.setSize(100,100);
+		scoreLabel.setLocation(InitialCondition.borderWidth+InitialCondition.startx+10
+				, 330);
+		scoreLabel.setOpaque(true);
+		scoreLabel.setBackground(Color.BLACK);
+		
+		
 		globalPanel.add(gPanel);
 		globalPanel.add(gGamePanel);
 		globalPanel.add(startButton);
 		globalPanel.add(pauseButton);
 		globalPanel.add(exitButton);
+		globalPanel.add(scoreLabel);
 		frame.getContentPane().add(globalPanel);
 		//如果不加这一行，焦点会在button上，
 		//并且鼠标无法修改焦点到frame之上的。
